@@ -1,161 +1,70 @@
 # NSPER: Novelty and Surprise Prioritized Experience Replay
 
 [![arXiv](https://img.shields.io/badge/arXiv-2608.17373-b31b1b.svg)](https://arxiv.org/abs/2608.17373)
-[![PyTorch](https://img.shields.io/badge/PyTorch-Implementation-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-Implementation-EE4C2C?logo=pytorch\&logoColor=white)](https://pytorch.org/)
 [![DeepMind Control Suite](https://img.shields.io/badge/Benchmark-DeepMind%20Control%20Suite-blue)](https://github.com/google-deepmind/dm_control)
 
-**Intrinsic-signal-based experience prioritization for sample-efficient image-based reinforcement learning.**
+> **Some experiences matter more because they are unfamiliar. Others matter because they violate what the agent expected. NSPER uses both.**
 
-> **Replay experiences because they are informative — not only because they produce a large TD error.**
+**Novelty and Surprise Prioritized Experience Replay (NSPER)** is an experience replay strategy for image-based reinforcement learning that prioritizes transitions using two complementary intrinsic signals:
 
-This repository provides the PyTorch implementation of **Novelty and Surprise Prioritized Experience Replay (NSPER)** and its intrinsic-reward extension **NSPER+R**.
+* **Novelty** — how unfamiliar an observation is.
+* **Surprise** — how different an observed transition is from what the agent predicted.
 
-NSPER combines two complementary intrinsic learning signals:
+Their combination forms the **Novelty–Surprise Signal (NSS)**, which determines which experiences are replayed more often.
 
-- **Novelty** — identifies observations that are poorly represented by the agent.
-- **Surprise** — identifies transitions that are difficult for the agent to predict.
+**NSPER+R** goes one step further by also using NSS as an intrinsic reward, connecting **experience selection** and **exploration** through the same signal.
 
-These signals are combined into a **Novelty–Surprise Signal (NSS)** that determines which experiences should receive greater replay priority.
-
-In **NSPER+R**, the same signal is additionally used as an intrinsic reward, connecting **experience prioritization** and **exploration** through a shared measure of informational value.
-
-The method is implemented within **PixelTD3** and evaluated on image-based continuous-control tasks from the **DeepMind Control Suite**.
+The method is implemented in **PyTorch**, integrated with **PixelTD3**, and evaluated on image-based continuous-control tasks from the **DeepMind Control Suite**.
 
 ---
 
+## Why Novelty and Surprise?
 
+Imagine an agent interacting with an environment.
 
-## Motivation
+Sometimes it reaches a state it has rarely or never seen before. That state is **novel**.
 
-Experience replay enables off-policy reinforcement learning agents to reuse previously collected interactions. However, the usefulness of replay depends strongly on **which experiences are selected for learning**.
-
-Traditional Prioritized Experience Replay (PER) commonly uses the magnitude of the temporal-difference (TD) error as a proxy for transition importance. In high-dimensional continuous-control problems, however, value-based errors do not necessarily capture the broader informational value of an experience.
-
-NSPER instead considers two complementary questions:
-
-> **Is this observation unfamiliar?**
-
-> **Did something happen that the agent failed to predict?**
-
-The first is captured by **novelty**, while the second is captured by **surprise**.
-
-Together, they identify transitions that expose gaps in the agent's current representation or predictive understanding of the environment.
-
----
-
-## Method Overview
+At other times, the state itself may be familiar, but what happens next differs from what the agent expected. That transition is **surprising**.
 
 <p align="center">
-  <img src="readme_media/NSPER.png" width="900" alt="NSPER architecture">
+  <img src="readme_media/NoveltySurprise.png" width="850" alt="Novelty and surprise in reinforcement learning">
 </p>
 
-NSPER augments PixelTD3 with:
+These signals provide different information:
 
-1. a convolutional **encoder–decoder** for representation learning;
-2. reconstruction-based **novelty estimation**;
-3. an ensemble of latent dynamics models for **surprise estimation**;
-4. a **Novelty–Surprise Signal (NSS)**;
-5. an NSS-driven prioritized replay buffer; and
-6. optionally, NSS-based intrinsic rewards.
+* **Novelty** encourages broader exploration and improves representation of unfamiliar states.
+* **Surprise** reveals inaccurate predictions and highlights transitions that require further learning.
 
-The learned representation therefore supports policy learning, novelty estimation, transition prediction, and experience prioritization.
+NSPER combines both because an informative experience may be unfamiliar, unexpected, or both.
 
 ---
 
-## Novelty and Surprise
+## How NSPER Works
 
-### Novelty: Representational Unfamiliarity
+For an image observation $s_t$, the agent first learns a latent representation and reconstructs the input.
 
-Given an image observation $s_t$, the encoder maps it into a latent representation:
-
-```math
-z_t = \mathrm{Enc}(s_t).
-```
-
-The decoder then reconstructs the observation:
-
-```math
-\hat{s}_t = \mathrm{Dec}(z_t).
-```
-
-Novelty is measured using the Structural Similarity Index (SSIM):
+Novelty is measured as:
 
 ```math
 \mathrm{Novelty}(s_t)
 =
-1 - \mathrm{SSIM}(s_t,\hat{s}_t).
+1-\mathrm{SSIM}(s_t,\hat{s}_t).
 ```
 
-A higher novelty value indicates that the observation is less well reconstructed and therefore less familiar to the agent.
+A poorly reconstructed observation receives a higher novelty score.
 
----
-
-### Surprise: Predictive Mismatch
-
-While novelty captures representational unfamiliarity, surprise measures how strongly an observed transition differs from the agent's prediction.
-
-Given the current latent representation $z_t$ and action $a_t$, an ensemble of $E$ predictive dynamics models estimates the next latent state:
-
-```math
-\tilde{z}_{t+1}^{(e)}
-=
-f^{(e)}(z_t,a_t),
-\qquad
-e=1,\ldots,E.
-```
-
-The ensemble mean prediction is:
-
-```math
-\bar{z}_{t+1}
-=
-\frac{1}{E}
-\sum_{e=1}^{E}
-\tilde{z}_{t+1}^{(e)}.
-```
-
-Surprise is defined as the prediction error between the predicted and observed next latent states:
+At the same time, an ensemble of dynamics models predicts the next latent state. Surprise is measured from the difference between the predicted and observed next representation:
 
 ```math
 \mathrm{Surprise}(s_t,a_t)
 =
 \left\|
-\bar{z}_{t+1}
--
-z_{t+1}
+\bar{z}_{t+1}-z_{t+1}
 \right\|_2^2.
 ```
 
-A higher surprise value indicates that the transition is difficult for the current dynamics model to predict.
-
----
-
-## Novelty–Surprise Signal
-
-Novelty and surprise capture complementary aspects of experience:
-
-| Signal | Captures | Interpretation |
-|---|---|---|
-| **Novelty** | Representational unfamiliarity | The observation is not yet represented well |
-| **Surprise** | Predictive mismatch | The transition differs from what was expected |
-
-NSPER combines these signals into the **Novelty–Surprise Signal (NSS)**:
-
-```math
-\mathrm{NSS}(s_t,a_t)
-=
-\lambda_N\,\mathrm{Novelty}(s_t)
-+
-\lambda_S\,\mathrm{Surprise}(s_t,a_t).
-```
-
-For the experiments reported in this work:
-
-```math
-\lambda_N = \lambda_S = 1.
-```
-
-Therefore:
+The two signals are combined into the **Novelty–Surprise Signal**:
 
 ```math
 \mathrm{NSS}(s_t,a_t)
@@ -165,47 +74,43 @@ Therefore:
 \mathrm{Surprise}(s_t,a_t).
 ```
 
-Novelty and surprise therefore contribute equally to the prioritization signal in the reported experiments.
-
----
-
-## NSPER: Novelty–Surprise Prioritization
-
-Standard TD-error Prioritized Experience Replay assigns transition priority according to:
+NSPER then uses NSS instead of TD error to determine replay priority:
 
 ```math
 \sigma_i
 =
-|\delta_i| + \epsilon,
+\mathrm{NSS}_i+\epsilon.
 ```
 
-where $\delta_i$ is the TD error and $\epsilon > 0$ ensures that every transition retains a non-zero probability of being replayed.
+So the basic idea is:
 
-NSPER retains the general PER framework but replaces the TD-error-based priority with the Novelty–Surprise Signal:
-
-```math
-\sigma_i
-=
-\mathrm{NSS}_i + \epsilon.
+```text
+Experience
+    │
+    ├──────────────┐
+    ▼              ▼
+ Novelty        Surprise
+    │              │
+    └──────┬───────┘
+           ▼
+          NSS
+           │
+           ▼
+   Replay Priority
+           │
+           ▼
+   Replay More Often
 ```
 
-Transitions with greater novelty or surprise therefore receive higher replay priority.
-
-This shifts experience prioritization away from purely **value-based errors** and toward the **intrinsic informational content** of an experience.
+> **Experiences that reveal gaps in the agent's representation or prediction receive greater replay attention.**
 
 ---
 
-## NSPER+R: Prioritization and Exploration
+## NSPER+R
 
-In NSPER, NSS is used exclusively for replay prioritization:
+NSPER uses NSS only for replay prioritization.
 
-```math
-r_t
-=
-r_t^{\mathrm{ext}}.
-```
-
-NSPER+R additionally uses the same Novelty–Surprise Signal as an intrinsic reward:
+**NSPER+R** uses the same signal as an intrinsic reward:
 
 ```math
 r_t
@@ -215,169 +120,66 @@ r_t^{\mathrm{ext}}
 \mathrm{NSS}(s_t,a_t).
 ```
 
-The two proposed variants can therefore be summarized as:
+This gives NSS two roles:
 
-| Method | Replay Priority | Intrinsic Reward |
-|---|---|---|
-| **NSPER** | Novelty + Surprise | No |
+| Method      | Replay Priority    | Intrinsic Reward   |
+| ----------- | ------------------ | ------------------ |
+| **NSPER**   | Novelty + Surprise | No                 |
 | **NSPER+R** | Novelty + Surprise | Novelty + Surprise |
 
-NSS influences learning in two complementary ways:
+In other words:
 
-- **Experience selection:** Which previously collected transitions should be replayed more frequently?
-- **Exploration:** Which informative transitions should the agent seek during interaction?
-
-NSPER+R connects these two processes through the same intrinsic learning signal.
+> **NSPER decides what the agent should learn from again. NSPER+R also encourages the agent to seek those informative experiences.**
 
 ---
 
-## Representation Learning
+## Architecture
 
-NSPER jointly learns representations for reconstruction and transition prediction.
+<p align="center">
+  <img src="readme_media/NSPER.png" width="900" alt="NSPER architecture">
+</p>
 
-The reconstruction objective is:
+NSPER extends PixelTD3 with:
 
-```math
-\mathcal{L}_{\mathrm{rec}}
-=
-\left\|
-s_t-\hat{s}_t
-\right\|_2^2.
-```
-
-The predictive ensemble is trained using the dynamics prediction objective:
-
-```math
-\mathcal{L}_{\mathrm{dyn}}
-=
-\frac{1}{E}
-\sum_{e=1}^{E}
-\left\|
-\tilde{z}_{t+1}^{(e)}
--
-z_{t+1}
-\right\|_2^2.
-```
-
-The combined representation-learning objective is:
-
-```math
-\mathcal{L}_{\mathrm{rep}}
-=
-\mathcal{L}_{\mathrm{rec}}
-+
-\mathcal{L}_{\mathrm{dyn}}.
-```
-
-This joint optimization allows the learned representation, novelty estimates, surprise estimates, and reinforcement learning policy to evolve together during training.
+* an **encoder–decoder** for visual representation learning and novelty estimation;
+* an ensemble of **predictive dynamics models** for surprise estimation;
+* an **NSS-based prioritized replay buffer**; and
+* optional **intrinsic rewards** in NSPER+R.
 
 ---
 
-## Experimental Evaluation
+## Experiments
 
-NSPER and NSPER+R are evaluated on five image-based continuous-control tasks from the **DeepMind Control Suite**.
+NSPER is evaluated on five image-based DeepMind Control Suite tasks:
 
-### Tasks
+* **Cartpole-Balance**
+* **Finger-Spin**
+* **Ball-in-Cup**
+* **Walker-Walk**
+* **Cheetah-Run**
 
-| Task | Domain | Main Challenge |
-|---|---|---|
-| **Cartpole-Balance** | Classic control | Stabilizing an underactuated system |
-| **Finger-Spin** | Manipulation | Fine continuous torque control |
-| **Ball-in-Cup** | Manipulation | Precise timing and coordination |
-| **Walker-Walk** | Locomotion | Dynamic balance and coordination |
-| **Cheetah-Run** | Locomotion | Stable high-speed control |
+The evaluation compares NSPER and NSPER+R against:
 
-### Experimental Configuration
+* Uniform Replay
+* Uniform+R / NaSATD3
+* TD-PER
+* TD-PER+R
+* RPE-PER
+* RPE-PER+R
+* CCLF
 
-| Parameter | Value |
-|---|---|
-| Observation | 84 × 84 RGB images |
-| Frame stacking | 3 consecutive frames |
-| Training horizon | 1,000,000 environment steps |
-| Replay buffer capacity | 1,000,000 transitions |
-| Batch size | 128 |
-| Actor learning rate | 1 × 10⁻⁴ |
-| Critic learning rate | 1 × 10⁻³ |
-| Prioritization exponent α | 0.7 |
-| Importance-sampling exponent β | 0.4 |
-| Evaluation frequency | Every 10,000 steps |
-| Evaluation episodes | 10 |
-| Independent random seeds | 5 |
+All methods use a common PixelTD3 framework for controlled comparison.
+
+### Main Findings
+
+* **NSPER improves PixelTD3 relative to the evaluated baselines on four of five tasks.**
+* **NSPER+R achieves the strongest overall performance among the evaluated methods.**
+* Novelty and surprise provide **complementary information**.
+* Ablation experiments show that their combination generally performs better than either signal alone.
 
 ---
 
-## Baselines
-
-NSPER and NSPER+R are compared with several experience replay and intrinsic-reward strategies under a common PixelTD3 framework:
-
-- **Uniform** — uniform experience replay
-- **Uniform+R (NaSATD3)** — uniform replay with intrinsic rewards
-- **TD-PER** — TD-error-based prioritized experience replay
-- **TD-PER+R** — TD-PER combined with intrinsic rewards
-- **RPE-PER** — reward-prediction-error prioritized experience replay
-- **RPE-PER+R** — RPE-PER combined with intrinsic rewards
-- **CCLF** — contrastive curiosity-driven learning
-
-All methods use the same implementation and training pipeline to provide a controlled comparison.
-
----
-
-## Main Findings
-
-The experimental results demonstrate that intrinsic learning signals can provide useful criteria not only for exploration, but also for **experience selection**.
-
-### Overall Performance
-
-- **NSPER improves PixelTD3 relative to the evaluated baseline methods on four of the five tasks.**
-- On the remaining task, NSPER achieves performance comparable to the strongest competing approach.
-- **NSPER+R achieves the strongest overall performance among the evaluated methods.**
-- NSPER maintains more consistent performance across diverse tasks than relying exclusively on TD-error prioritization.
-
-### Ablation Study
-
-The ablation study compares:
-
-- **NoveltyPER**
-- **SurprisePER**
-- **NSPER**
-
-with and without intrinsic rewards.
-
-The results show that:
-
-- novelty and surprise provide **complementary information**;
-- NoveltyPER generally outperforms SurprisePER;
-- combining novelty and surprise generally performs better than using either signal individually; and
-- combining both signals for prioritization and intrinsic reward provides the strongest overall performance.
-
-These results support the central idea behind NSPER:
-
-> **Informative experiences can be identified through what the agent does not yet represent well and what it cannot yet predict well.**
-
----
-
-## Repository Structure
-
-```text
-NSPER/
-├── networks/                  # Neural-network components
-├── utils/                     # Replay and utility components
-├── readme_media/              # README figures
-│
-├── nsper_td3.py               # NSPER implementation
-├── nsper_td3_tderr.py         # TD-error comparison implementation
-│
-├── train_loop.py              # Main NSPER / NSPER+R experiments
-├── train_loop_novelty.py      # Novelty-only ablation
-├── train_loop_surprise.py     # Surprise-only ablation
-│
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Installation
+## Getting Started
 
 Clone the repository:
 
@@ -386,68 +188,55 @@ git clone https://github.com/UoA-CARES/NSPER.git
 cd NSPER
 ```
 
-Create an isolated Python environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Install the required dependencies:
+Install the dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The implementation uses **PyTorch**, **MuJoCo**, and the **DeepMind Control Suite** for image-based continuous-control experiments.
+Run the main experiments:
 
----
-
-## Reproducing the Experiments
-
-The repository contains separate training scripts for the main method and the ablation experiments:
-
-```text
-train_loop.py
-train_loop_novelty.py
-train_loop_surprise.py
+```bash
+python train_loop.py
 ```
 
-- `train_loop.py` — NSPER and NSPER+R
-- `train_loop_novelty.py` — novelty-only prioritization
-- `train_loop_surprise.py` — surprise-only prioritization
+Ablation experiments:
 
-The experimental configuration used in the paper is summarized above.
-
-> **Note:** See the training scripts for the currently supported command-line arguments and experiment configuration.
+```bash
+python train_loop_novelty.py
+python train_loop_surprise.py
+```
 
 ---
 
-## Research Context
+## Paper
 
-NSPER was developed as part of research on **sample-efficient reinforcement learning**, with a particular focus on improving how agents select and reuse informative experiences.
+**Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
 
-The work forms part of the doctoral research chapter:
+Hoda Yamani, Henry Williams, and Bruce A. MacDonald
 
-> **Novelty and Surprise for Experience Prioritisation and Exploration**
+*International Journal of Computer and Systems Engineering*,
+Vol. 20, No. 4, pp. 439–447, 2026.
 
-and accompanies the paper:
+ <p>
+  <strong>Published paper:</strong>
+  <a href="https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning">
+    International Journal of Computer and Systems Engineering
+  </a>
+</p>
 
-> **Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
-
-The broader motivation is to move experience replay beyond purely value-based criteria toward signals that capture the **informational content of interaction**.
+ <p>
+  <strong>arXiv preprint:</strong>
+  <a href="https://arxiv.org/abs/2608.17373">
+    arXiv:2608.17373
+  </a>
+</p>
 
 ---
 
 ## Citation
 
-If you use **NSPER** or **NSPER+R** in your research, please cite our paper:
-
-**H. Yamani, H. Williams, and B. A. MacDonald**,  
-“Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning,”  
-*International Journal of Computer and Systems Engineering*, vol. 20, no. 4, pp. 439–447, 2026.
-
-### BibTeX
+If you use **NSPER**, **NSPER+R**, or this repository in your research, please cite:
 
 ```bibtex
 @article{yamani2026integrating,
@@ -462,32 +251,16 @@ If you use **NSPER** or **NSPER+R** in your research, please cite our paper:
 }
 ```
 
-<p>
-  <strong>Published paper:</strong>
-  <a href="https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning">
-    International Journal of Computer and Systems Engineering
-  </a>
-</p>
-
-<p>
-  <strong>arXiv preprint:</strong>
-  <a href="https://arxiv.org/abs/2608.17373">
-    arXiv:2608.17373
-  </a>
-</p>
-
 ---
 
 ## Authors
 
-**Hoda Yamani**  
-**Henry Williams**  
-**Bruce A. MacDonald**
+**Hoda Yamani · Henry Williams · Bruce A. MacDonald**
 
-Robot Learning Team and CARES Robotics Lab  
-Department of Electrical, Computer, and Software Engineering  
-University of Auckland  
-Auckland, New Zealand
+Robot Learning Team and CARES Robotics Lab
+Department of Electrical, Computer, and Software Engineering
+University of Auckland, New Zealand
+
 
 ---
 
