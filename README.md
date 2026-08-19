@@ -25,7 +25,6 @@ The method is implemented within **PixelTD3** and evaluated on image-based conti
 
 ## Paper
 
-
 **Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
 
 **Hoda Yamani, Henry Williams, Bruce A. MacDonald**
@@ -33,14 +32,15 @@ The method is implemented within **PixelTD3** and evaluated on image-based conti
 *International Journal of Computer and Systems Engineering*,  
 Vol. 20, No. 4, pp. 439–447, 2026.
 
-- **Published version:** [International Journal of Computer and Systems Engineering (WASET)](https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning)
-- **Preprint:** [arXiv:2608.17373](https://arxiv.org/abs/2608.17373)
+📄 **Published paper:**  
+[International Journal of Computer and Systems Engineering (WASET)](https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning)
+
+📑 **arXiv preprint:**  
+[arXiv:2608.17373](https://arxiv.org/abs/2608.17373)
 
 This work also forms part of the PhD thesis chapter:
 
 > **Novelty and Surprise for Experience Prioritisation and Exploration**
-
----
 
 ## Motivation
 
