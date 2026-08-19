@@ -17,7 +17,7 @@ The algorithm is evaluated on the [DeepMind Control Suite](https://github.com/go
 The architecture integrates novelty and surprise estimations into the experience replay prioritization mechanism, optimizing policy updates within the TD3 framework.  
 
 ---
-
+ 
 ## Installation & Setup  
 
 ### Prerequisites  
