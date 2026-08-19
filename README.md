@@ -460,13 +460,28 @@ The broader motivation is to move experience replay beyond purely value-based cr
 
 **Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
 
-Hoda Yamani, Henry Williams, and Bruce A. MacDonald
+**Hoda Yamani, Henry Williams, Bruce A. MacDonald**
 
-*International Journal of Computer and Systems Engineering*,  
+*International Journal of Computer and Systems Engineering*  
 Vol. 20, No. 4, pp. 439–447, 2026.
 
-- **Published version:** World Academy of Science, Engineering and Technology
-- **Preprint:** arXiv:2608.17373
+<p>
+  <strong>Published version:</strong>
+  <a href="https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning">
+    International Journal of Computer and Systems Engineering
+  </a>
+</p>
+
+<p>
+  <strong>Preprint:</strong>
+  <a href="https://arxiv.org/abs/2608.17373">
+    arXiv:2608.17373
+  </a>
+</p>
+
+This work also forms part of the PhD thesis chapter:
+
+> **Novelty and Surprise for Experience Prioritisation and Exploration**
 
 ---
 
