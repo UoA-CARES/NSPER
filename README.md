@@ -23,24 +23,7 @@ The method is implemented within **PixelTD3** and evaluated on image-based conti
 
 ---
 
-## Paper
 
-**Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
-
-**Hoda Yamani, Henry Williams, Bruce A. MacDonald**
-
-*International Journal of Computer and Systems Engineering*,  
-Vol. 20, No. 4, pp. 439–447, 2026.
-
-📄 **Published paper:**  
-[International Journal of Computer and Systems Engineering (WASET)](https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning)
-
-📑 **arXiv preprint:**  
-[arXiv:2608.17373](https://arxiv.org/abs/2608.17373)
-
-This work also forms part of the PhD thesis chapter:
-
-> **Novelty and Surprise for Experience Prioritisation and Exploration**
 
 ## Motivation
 
@@ -456,32 +439,42 @@ The broader motivation is to move experience replay beyond purely value-based cr
 
 ---
 
-## Paper
+## Citation
 
-**Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning**
+If you use **NSPER** or **NSPER+R** in your research, please cite our paper:
 
-**Hoda Yamani, Henry Williams, Bruce A. MacDonald**
+**H. Yamani, H. Williams, and B. A. MacDonald**,  
+“Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning,”  
+*International Journal of Computer and Systems Engineering*, vol. 20, no. 4, pp. 439–447, 2026.
 
-*International Journal of Computer and Systems Engineering*  
-Vol. 20, No. 4, pp. 439–447, 2026.
+### BibTeX
+
+```bibtex
+@article{yamani2026integrating,
+  title     = {Integrating Novelty and Surprise for Experience Prioritization and Exploration in Image-Based Reinforcement Learning},
+  author    = {Yamani, Hoda and Williams, Henry and MacDonald, Bruce A.},
+  journal   = {International Journal of Computer and Systems Engineering},
+  volume    = {20},
+  number    = {4},
+  pages     = {439--447},
+  year      = {2026},
+  publisher = {World Academy of Science, Engineering and Technology}
+}
+```
 
 <p>
-  <strong>Published version:</strong>
+  <strong>Published paper:</strong>
   <a href="https://publications.waset.org/10014461/integrating-novelty-and-surprise-for-experience-prioritization-and-exploration-in-image-based-reinforcement-learning">
     International Journal of Computer and Systems Engineering
   </a>
 </p>
 
 <p>
-  <strong>Preprint:</strong>
+  <strong>arXiv preprint:</strong>
   <a href="https://arxiv.org/abs/2608.17373">
     arXiv:2608.17373
   </a>
 </p>
-
-This work also forms part of the PhD thesis chapter:
-
-> **Novelty and Surprise for Experience Prioritisation and Exploration**
 
 ---
 
